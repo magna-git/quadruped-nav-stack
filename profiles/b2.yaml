@@ -1,0 +1,32 @@
+robot:
+  name: b2
+  base_frame: robot_center
+  odom_frame: odom
+  map_frame: map
+
+  control:
+    axis_convention: standard
+    cmd_vel_topic: /cmd_vel
+    sport_api_topic: /api/sport/request
+    max_vx: 0.5
+    max_vy: 0.3
+    max_vyaw: 0.8
+    publish_hz: 50.0
+
+  lidar:
+    topic: /rslidar_points
+    frequency_hz: 10.0
+
+  odometry:
+    topic: /dog_odom
+    frequency_hz: 500.0
+    slam_topic: /lio_sam_ros2/mapping/odometry
+
+  slam:
+    engine: lio_sam_ros2
+    map_topic: /mapping/grid_map
+    costmap_topic: /local_costmap/costmap
+
+  middleware:
+    rmw: rmw_fastrtps_cpp
+    domain_id: 0
