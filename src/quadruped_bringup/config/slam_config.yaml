@@ -17,5 +17,7 @@ slam_toolbox:
     map_update_interval: 2.0
     use_scan_barycenter: true
     transform_timeout: 1.0
+    minimum_travel_distance: 0.2
+    minimum_travel_heading: 0.2
 
     mode: mapping

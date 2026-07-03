@@ -32,20 +32,24 @@ class OdomToTF(Node):
 
         self.pub_scan = self.create_publisher(LaserScan, '/scan_synced', 10)
 
-        # Throttle du broadcast TF : 500Hz est inutile pour SLAM/Nav2 (qui
-        # tournent a 10-30Hz). On limite a 50Hz pour retirer la pression sur
-        # l'executor et laisser scan_cb s'executer regulierement.
-        self.tf_period_sec = 1.0 / 50.0
-        self._last_tf_time_sec = 0.0
+        # odom_cb (500Hz) se contente de stocker le dernier message ; c'est un
+        # timer dedie a 50Hz qui fait le broadcast TF. On evite ainsi 500
+        # invocations/sec sur le thread odom rien que pour un check de
+        # throttle, ce qui liberait le CPU pour scan_cb.
+        self._last_odom_msg = None
+        self.tf_timer = self.create_timer(
+            1.0 / 50.0, self.tf_timer_cb, callback_group=odom_group)
 
         self.get_logger().info(
-            'odom_to_tf + scan re-stamper demarre (multi-thread, TF throttled a 50Hz)')
+            'odom_to_tf + scan re-stamper demarre (multi-thread, TF via timer 50Hz)')
 
     def odom_cb(self, msg):
-        now_sec = self.get_clock().now().nanoseconds * 1e-9
-        if now_sec - self._last_tf_time_sec < self.tf_period_sec:
+        self._last_odom_msg = msg
+
+    def tf_timer_cb(self):
+        msg = self._last_odom_msg
+        if msg is None:
             return
-        self._last_tf_time_sec = now_sec
 
         t = TransformStamped()
         t.header.stamp = self.get_clock().now().to_msg()
