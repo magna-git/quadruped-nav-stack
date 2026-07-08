@@ -1,45 +1,107 @@
+#!/usr/bin/env python3
+import copy
+
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
+from rclpy.executors import MultiThreadedExecutor
+
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import LaserScan
 from tf2_ros import TransformBroadcaster
 from geometry_msgs.msg import TransformStamped
 
+
 class OdomToTF(Node):
     def __init__(self):
         super().__init__('odom_to_tf')
+
         self.br = TransformBroadcaster(self)
 
-        qos_odom = QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT)
-        self.sub_odom = self.create_subscription(
-            Odometry, '/dog_odom', self.odom_cb, qos_odom)
+        odom_group = MutuallyExclusiveCallbackGroup()
+        scan_group = MutuallyExclusiveCallbackGroup()
 
-        qos_scan = QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT)
+        qos_odom = QoSProfile(depth=100, reliability=ReliabilityPolicy.BEST_EFFORT)
+        qos_scan = QoSProfile(depth=20, reliability=ReliabilityPolicy.BEST_EFFORT)
+
+        self.sub_odom = self.create_subscription(
+            Odometry,
+            '/dog_odom',
+            self.odom_cb,
+            qos_odom,
+            callback_group=odom_group
+        )
+
         self.sub_scan = self.create_subscription(
-            LaserScan, '/scan', self.scan_cb, qos_scan)
+            LaserScan,
+            '/scan',
+            self.scan_cb,
+            qos_scan,
+            callback_group=scan_group
+        )
+
         self.pub_scan = self.create_publisher(LaserScan, '/scan_synced', 10)
 
-        self.get_logger().info('odom_to_tf + scan re-stamper demarre')
+        self._last_odom_msg = None
 
-    def odom_cb(self, msg):
+        self.get_logger().info(
+            'odom_to_tf v3: TF et scan_synced publies avec le meme now()'
+        )
+
+    def odom_cb(self, msg: Odometry):
+        self._last_odom_msg = msg
+
+    def publish_tf(self, stamp):
+        msg = self._last_odom_msg
+        if msg is None:
+            return False
+
         t = TransformStamped()
-        t.header.stamp = self.get_clock().now().to_msg()
-        t.header.frame_id = msg.header.frame_id
-        t.child_frame_id = msg.child_frame_id
+        t.header.stamp = stamp
+        t.header.frame_id = msg.header.frame_id or 'odom'
+        t.child_frame_id = msg.child_frame_id or 'robot_center'
+
         t.transform.translation.x = msg.pose.pose.position.x
         t.transform.translation.y = msg.pose.pose.position.y
         t.transform.translation.z = msg.pose.pose.position.z
         t.transform.rotation = msg.pose.pose.orientation
-        self.br.sendTransform(t)
 
-    def scan_cb(self, msg):
-        msg.header.stamp = self.get_clock().now().to_msg()
-        self.pub_scan.publish(msg)
+        self.br.sendTransform(t)
+        return True
+
+    def scan_cb(self, msg: LaserScan):
+        if self._last_odom_msg is None:
+            return
+
+        stamp = self.get_clock().now().to_msg()
+
+        self.publish_tf(stamp)
+
+        synced = copy.deepcopy(msg)
+        synced.header.stamp = stamp
+        synced.header.frame_id = msg.header.frame_id or 'rslidar'
+
+        self.pub_scan.publish(synced)
+
 
 def main():
     rclpy.init()
-    rclpy.spin(OdomToTF())
+
+    node = OdomToTF()
+    executor = MultiThreadedExecutor(num_threads=2)
+    executor.add_node(node)
+
+    try:
+        executor.spin()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        executor.shutdown()
+        node.destroy_node()
+        if rclpy.ok():
+            rclpy.shutdown()
+
 
 if __name__ == '__main__':
     main()
