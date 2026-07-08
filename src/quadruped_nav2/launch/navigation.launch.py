@@ -1,37 +1,35 @@
 import os
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
 
 
-def generate_launch_description():
-
+def launch_setup(context, *args, **kwargs):
+    robot = LaunchConfiguration('robot').perform(context)
     bringup_share = get_package_share_directory('quadruped_bringup')
     nav2_share = get_package_share_directory('quadruped_nav2')
 
-    default_map = os.path.join(bringup_share, 'maps', 'innov8_map.yaml')
-    default_params = os.path.join(nav2_share, 'config', 'nav2_params.yaml')
+    map_yaml_file = LaunchConfiguration('map').perform(context)
+    params_file = LaunchConfiguration('params_file').perform(context)
+    if not params_file:
+        params_file = os.path.join(nav2_share, 'config', f'nav2_params_{robot}.yaml')
 
-    map_yaml_file = LaunchConfiguration('map')
-    params_file = LaunchConfiguration('params_file')
-
-    declare_map = DeclareLaunchArgument(
-        'map', default_value=default_map,
-        description='Carte statique (.yaml) sur laquelle AMCL se localise')
-
-    declare_params = DeclareLaunchArgument(
-        'params_file', default_value=default_params,
-        description='Fichier de parametres nav2 (amcl, DWB, costmaps, waypoints...)')
-
-    # Chaine de perception commune (TF lidar, odom_to_tf, pointcloud_to_laserscan)
-    # -> alimente AMCL et les costmaps en /scan_synced, sans relancer slam_toolbox.
+    # Perception + actuation (memes chaines que le mapping, mais sans slam_toolbox :
+    # AMCL se localise sur la carte statique deja construite)
     sensors = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(bringup_share, 'launch', 'sensors.launch.py')
-        )
+        ),
+        launch_arguments={'robot': robot}.items(),
+    )
+    actuation = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(bringup_share, 'launch', 'actuation.launch.py')
+        ),
+        launch_arguments={'robot': robot}.items(),
     )
 
     # -- Groupe localisation --
@@ -93,8 +91,8 @@ def generate_launch_description():
         parameters=[params_file],
     )
 
-    # Lisse la sortie du controller_server avant de l'envoyer sur /cmd_vel,
-    # c'est ce topic final que lit quadruped_adapter (robot_adapter.cpp).
+    # Lisse la sortie du controller_server avant /cmd_vel, lu par
+    # quadruped_adapter (robot_adapter.cpp) demarre via actuation.launch.py.
     velocity_smoother = Node(
         package='nav2_velocity_smoother',
         executable='velocity_smoother',
@@ -110,10 +108,9 @@ def generate_launch_description():
         parameters=[params_file],
     )
 
-    return LaunchDescription([
-        declare_map,
-        declare_params,
+    return [
         sensors,
+        actuation,
         map_server,
         amcl,
         lifecycle_manager_localization,
@@ -124,4 +121,22 @@ def generate_launch_description():
         waypoint_follower,
         velocity_smoother,
         lifecycle_manager_navigation,
+    ]
+
+
+def generate_launch_description():
+    bringup_share = get_package_share_directory('quadruped_bringup')
+    default_map = os.path.join(bringup_share, 'maps', 'innov8_map.yaml')
+
+    return LaunchDescription([
+        DeclareLaunchArgument(
+            'robot', default_value='b2',
+            description='Profil robot (profiles/<robot>.yaml + nav2_params_<robot>.yaml)'),
+        DeclareLaunchArgument(
+            'map', default_value=default_map,
+            description='Carte statique (.yaml) sur laquelle AMCL se localise'),
+        DeclareLaunchArgument(
+            'params_file', default_value='',
+            description='Fichier nav2 a utiliser ; vide = config/nav2_params_<robot>.yaml'),
+        OpaqueFunction(function=launch_setup),
     ])

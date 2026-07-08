@@ -95,7 +95,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Teleop headless ROS2 pour Unitree B2")
     parser.add_argument(
         "--topic",
-        default="/b2_unit_001/hardware/cmd_vel",
+        default="/cmd_vel",
         help="Topic cmd_vel cible",
     )
     parser.add_argument("--vx", type=float, default=0.30, help="Vitesse avant/arriere (m/s)")

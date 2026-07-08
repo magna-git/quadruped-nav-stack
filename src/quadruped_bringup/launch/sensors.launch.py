@@ -1,27 +1,39 @@
+import os
+import yaml
 from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+from ament_index_python.packages import get_package_share_directory
 
 
-def generate_launch_description():
-    """Chaine de perception commune, partagee entre mapping et navigation.
+def _load_profile(robot: str) -> dict:
+    profile_path = os.path.join(
+        get_package_share_directory('quadruped_bringup'), 'profiles', f'{robot}.yaml')
+    with open(profile_path) as f:
+        data = yaml.safe_load(f)
+    return profile_path, data['/**']['ros__parameters']
 
-    robot_center --(TF statique)--> rslidar --(odom_to_tf)--> odom
-    puis rslidar_points --(pointcloud_to_laserscan)--> /scan_synced
-    """
 
-    # 1. TF statique robot_center -> rslidar
+def launch_setup(context, *args, **kwargs):
+    robot = LaunchConfiguration('robot').perform(context)
+    profile_path, params = _load_profile(robot)
+
+    # 1. TF statique base -> lidar. Offset physique reel non calibre (TODO,
+    # voir TESTS_DEMAIN.md) : identite pour l'instant.
     static_tf = Node(
         package='tf2_ros',
         executable='static_transform_publisher',
-        arguments=['0', '0', '0', '0', '0', '0', 'robot_center', 'rslidar'],
+        arguments=['0', '0', '0', '0', '0', '0', params['base_frame'], params['target_frame']],
         name='static_tf_lidar'
     )
 
-    # 2. odom_to_tf + re-stamp du scan
+    # 2. odom_to_tf + re-stamp du scan (topics pilotes par le profil robot)
     odom_to_tf = Node(
         package='quadruped_bringup',
         executable='odom_to_tf',
-        name='odom_to_tf'
+        name='odom_to_tf',
+        parameters=[profile_path],
     )
 
     # 3. pointcloud_to_laserscan (obstacles pour les costmaps nav2)
@@ -29,17 +41,17 @@ def generate_launch_description():
         package='pointcloud_to_laserscan',
         executable='pointcloud_to_laserscan_node',
         name='pointcloud_to_laserscan',
-        remappings=[('cloud_in', '/rslidar_points')],
-        parameters=[{
-            'target_frame': 'rslidar',
-            'min_height': -0.3,
-            'max_height': 0.5,
-            'use_inf': True,
-        }]
+        remappings=[('cloud_in', params['lidar_topic'])],
+        parameters=[profile_path],
     )
 
+    return [static_tf, odom_to_tf, pc_to_scan]
+
+
+def generate_launch_description():
     return LaunchDescription([
-        static_tf,
-        odom_to_tf,
-        pc_to_scan,
+        DeclareLaunchArgument(
+            'robot', default_value='b2',
+            description='Profil robot a charger (profiles/<robot>.yaml)'),
+        OpaqueFunction(function=launch_setup),
     ])

@@ -1,0 +1,40 @@
+# Profil robot B2-W — charge reellement par odom_to_tf, pointcloud_to_laserscan
+# et robot_adapter (via sensors.launch.py / actuation.launch.py, argument robot:=b2).
+#
+# Pour porter le stack sur un autre robot (ex: AgiBot D1max) : copier ce fichier
+# en profiles/<robot>.yaml, ajuster les valeurs, et lancer avec robot:=<robot>.
+# Les frames doivent rester cohérentes avec config/slam_config_<robot>.yaml et
+# quadruped_nav2/config/nav2_params_<robot>.yaml (fichiers nav2/slam autonomes,
+# pas pilotes par ce profil - voir README).
+#
+# Rappel (pas des parametres ROS, a exporter dans le shell avant de lancer) :
+#   export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+#   export ROS_DOMAIN_ID=0
+
+/**:
+  ros__parameters:
+    # Frames TF
+    base_frame: robot_center
+    odom_frame: odom
+    map_frame: map
+
+    # Perception : odom_to_tf
+    odom_topic: /dog_odom
+    scan_topic: /scan
+    scan_synced_topic: /scan_synced
+
+    # Perception : pointcloud_to_laserscan (noms de parametres imposes par le package)
+    target_frame: rslidar
+    min_height: -0.3
+    max_height: 0.5
+    use_inf: true
+
+    # Perception : topic lidar a remapper sur cloud_in
+    lidar_topic: /rslidar_points
+
+    # Actuation : quadruped_adapter / robot_adapter.cpp
+    cmd_vel_topic: /cmd_vel
+    network_interface: eth0
+    max_vx: 0.5
+    max_vy: 0.3
+    max_vyaw: 0.8

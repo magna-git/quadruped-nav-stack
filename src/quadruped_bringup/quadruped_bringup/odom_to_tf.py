@@ -17,6 +17,14 @@ class OdomToTF(Node):
     def __init__(self):
         super().__init__('odom_to_tf')
 
+        self.declare_parameter('odom_topic', '/dog_odom')
+        self.declare_parameter('scan_topic', '/scan')
+        self.declare_parameter('scan_synced_topic', '/scan_synced')
+
+        odom_topic = self.get_parameter('odom_topic').value
+        scan_topic = self.get_parameter('scan_topic').value
+        scan_synced_topic = self.get_parameter('scan_synced_topic').value
+
         self.br = TransformBroadcaster(self)
 
         odom_group = MutuallyExclusiveCallbackGroup()
@@ -27,7 +35,7 @@ class OdomToTF(Node):
 
         self.sub_odom = self.create_subscription(
             Odometry,
-            '/dog_odom',
+            odom_topic,
             self.odom_cb,
             qos_odom,
             callback_group=odom_group
@@ -35,13 +43,13 @@ class OdomToTF(Node):
 
         self.sub_scan = self.create_subscription(
             LaserScan,
-            '/scan',
+            scan_topic,
             self.scan_cb,
             qos_scan,
             callback_group=scan_group
         )
 
-        self.pub_scan = self.create_publisher(LaserScan, '/scan_synced', 10)
+        self.pub_scan = self.create_publisher(LaserScan, scan_synced_topic, 10)
 
         self._last_odom_msg = None
 
