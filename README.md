@@ -64,11 +64,25 @@ slam_toolbox. Sauver la carte une fois satisfaisante :
 ros2 run nav2_map_server map_saver_cli -f src/quadruped_bringup/maps/<nom_carte>
 ```
 
+`map_saver_cli` sauve directement le `.pgm`/`.yaml` en ecoutant le topic
+`/map` publie par slam_toolbox — pas besoin de lancer `map_server` toi-meme,
+c'est un noeud different (celui qui *sert* une carte a AMCL pendant la
+navigation, deja inclus dans `navigation.launch.py`).
+
+Important : les cartes sont installees dans le package (`share/quadruped_bringup/maps`).
+Apres un nouveau `map_saver_cli` dans `src/quadruped_bringup/maps/`, refaire
+`colcon build --symlink-install` (rapide, package Python) pour que la nouvelle
+carte soit visible au prochain lancement de la navigation.
+
 ## Navigation (localisation + evitement d'obstacles + waypoints)
 
 ```
-ros2 launch quadruped_nav2 navigation.launch.py robot:=b2 map:=<chemin_vers_carte>.yaml
+ros2 launch quadruped_nav2 navigation.launch.py robot:=b2
 ```
+
+`map:=` est optionnel : si omis, le launch prend automatiquement la carte la
+plus recente (par date de modification) dans `maps/`. Passe `map:=<chemin>.yaml`
+explicitement pour forcer une carte precise.
 
 - **Localisation** : AMCL sur la carte statique.
 - **Evitement d'obstacles** : costmap locale alimentee par `/scan_synced`, controller DWB.

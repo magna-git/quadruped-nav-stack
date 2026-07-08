@@ -1,3 +1,4 @@
+import glob
 import os
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction
@@ -7,12 +8,29 @@ from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
 
 
+def _latest_map(maps_dir: str) -> str:
+    candidates = glob.glob(os.path.join(maps_dir, '*.yaml'))
+    if not candidates:
+        raise RuntimeError(
+            f"Aucune carte (.yaml) trouvee dans {maps_dir}. "
+            "Sauvegarde-en une d'abord avec map_saver_cli, ou passe map:=<chemin>."
+        )
+    return max(candidates, key=os.path.getmtime)
+
+
 def launch_setup(context, *args, **kwargs):
     robot = LaunchConfiguration('robot').perform(context)
     bringup_share = get_package_share_directory('quadruped_bringup')
     nav2_share = get_package_share_directory('quadruped_nav2')
 
+    # map:='' (defaut) -> on prend automatiquement la derniere carte sauvegardee
+    # (par date de modification) dans le dossier maps/ installe du package.
+    # Rappel : apres un map_saver_cli dans src/quadruped_bringup/maps/, il faut
+    # un `colcon build --symlink-install` pour qu'elle apparaisse ici.
     map_yaml_file = LaunchConfiguration('map').perform(context)
+    if not map_yaml_file:
+        map_yaml_file = _latest_map(os.path.join(bringup_share, 'maps'))
+
     params_file = LaunchConfiguration('params_file').perform(context)
     if not params_file:
         params_file = os.path.join(nav2_share, 'config', f'nav2_params_{robot}.yaml')
@@ -125,16 +143,13 @@ def launch_setup(context, *args, **kwargs):
 
 
 def generate_launch_description():
-    bringup_share = get_package_share_directory('quadruped_bringup')
-    default_map = os.path.join(bringup_share, 'maps', 'innov8_map.yaml')
-
     return LaunchDescription([
         DeclareLaunchArgument(
             'robot', default_value='b2',
             description='Profil robot (profiles/<robot>.yaml + nav2_params_<robot>.yaml)'),
         DeclareLaunchArgument(
-            'map', default_value=default_map,
-            description='Carte statique (.yaml) sur laquelle AMCL se localise'),
+            'map', default_value='',
+            description='Carte statique (.yaml) ; vide = la plus recente dans maps/'),
         DeclareLaunchArgument(
             'params_file', default_value='',
             description='Fichier nav2 a utiliser ; vide = config/nav2_params_<robot>.yaml'),

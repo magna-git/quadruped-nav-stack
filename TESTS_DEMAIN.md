@@ -49,12 +49,16 @@ ros2 run quadruped_bringup teleop
   slam_toolbox recale).
 - Sauver une nouvelle carte si besoin :
   `ros2 run nav2_map_server map_saver_cli -f src/quadruped_bringup/maps/<nom>`
+  puis **`colcon build --symlink-install`** pour qu'elle soit visible du launch nav2.
 
 ## 4. Navigation (AMCL + DWB + waypoints) — le nouveau morceau, jamais teste
 
 ```
-ros2 launch quadruped_nav2 navigation.launch.py robot:=b2 map:=<chemin>.yaml
+ros2 launch quadruped_nav2 navigation.launch.py robot:=b2
 ```
+Sans `map:=`, prend automatiquement la derniere carte sauvegardee (par date
+de modification) dans `maps/`. Verifier dans les logs que c'est bien la bonne
+carte qui est chargee avant de continuer.
 - [ ] Les lifecycle managers passent bien tous les noeuds en `active`
   (`ros2 lifecycle list /amcl`, etc., ou `ros2 topic echo /amcl/transition_event`).
 - [ ] AMCL converge : donner une pose initiale dans RViz (`2D Pose Estimate`),
