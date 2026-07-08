@@ -3,12 +3,25 @@
 <package format="3">
   <name>quadruped_nav2</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>Stack de navigation nav2 (localisation AMCL, evitement d'obstacles, waypoints) pour le quadrupede B2-W</description>
   <maintainer email="dia.khadijetou96@gmail.com">unitree</maintainer>
-  <license>TODO: License declaration</license>
+  <license>MIT</license>
 
   <depend>rclpy</depend>
   <depend>nav2_msgs</depend>
+
+  <exec_depend>nav2_bringup</exec_depend>
+  <exec_depend>nav2_map_server</exec_depend>
+  <exec_depend>nav2_amcl</exec_depend>
+  <exec_depend>nav2_controller</exec_depend>
+  <exec_depend>nav2_planner</exec_depend>
+  <exec_depend>nav2_behaviors</exec_depend>
+  <exec_depend>nav2_bt_navigator</exec_depend>
+  <exec_depend>nav2_waypoint_follower</exec_depend>
+  <exec_depend>nav2_velocity_smoother</exec_depend>
+  <exec_depend>nav2_lifecycle_manager</exec_depend>
+  <exec_depend>nav2_costmap_2d</exec_depend>
+  <exec_depend>quadruped_bringup</exec_depend>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
