@@ -26,8 +26,11 @@ amcl:
     min_particles: 500
     laser_max_range: 20.0
     laser_min_range: 0.5
-    update_min_a: 0.2
-    update_min_d: 0.2
+    # Alignes sur le fix slam_toolbox (commit "Fix B2-W SLAM..."): avec des seuils
+    # a 0.2 (20cm/~11 deg) le filtre ne se recalait qu'apres un tres gros
+    # deplacement, ce qui empechait la carte/localisation de suivre le robot.
+    update_min_a: 0.02
+    update_min_d: 0.02
     robot_model_type: "nav2_amcl::OmniMotionModel"  # B2-W = holonome (vx, vy, vyaw)
 
 map_server:
