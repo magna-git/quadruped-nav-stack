@@ -44,6 +44,27 @@ src/
 profiles/                  (n'existe plus a la racine, deplace dans quadruped_bringup)
 ```
 
+## Prerequis : RMW CycloneDDS
+
+**Obligatoire sur le robot ET sur toute machine distante (RViz, PC de dev)**
+avant de builder/lancer quoi que ce soit :
+
+```
+source scripts/setup_env.sh
+```
+
+Ce script bascule le RMW de Fast-DDS (defaut ROS2) vers CycloneDDS. Raison :
+Fast-DDS + son transport shared-memory explose en RAM avec les gros messages
+nav2 (carte, costmaps) et peut declencher un OOM qui tue tous les noeuds
+d'un coup en quelques secondes (voir section "Erreurs deja rencontrees").
+`rmw_cyclonedds_cpp` est declare en `exec_depend` dans les `package.xml`
+(`quadruped_bringup`, `quadruped_nav2`) pour rappeler qu'il est requis.
+
+Toutes les machines qui doivent se decouvrir (meme `ROS_DOMAIN_ID`, ex:
+robot + PC RViz) doivent utiliser le meme RMW et la meme interface reseau.
+`scripts/cyclonedds.xml` cible `eth0` par defaut : ajuster si l'interface
+differe (`ip -o link show` pour lister les interfaces disponibles).
+
 ## Build
 
 ```
@@ -125,6 +146,18 @@ deploiement).
 - `profiles/b2.yaml` n'etait charge par aucun noeud (verifie par grep) :
   simple doc, jamais lu -> corrige, c'est maintenant un vrai fichier de
   parametres ROS2 (`/**: ros__parameters:`) charge au lancement.
+- **OOM au lancement de `navigation.launch.py`** (2026-07-10) : tous les
+  noeuds nav2 tues d'un coup par le kernel (`Out of memory: Killed process
+  ...`, exit code -9 simultane sur amcl/controller_server/planner_server/
+  bt_navigator/behavior_server/velocity_smoother/waypoint_follower/
+  map_server/...), RSS de chaque noeud grimpant a plusieurs Go en quelques
+  secondes. Cause : RMW par defaut (Fast-DDS) + transport shared-memory, qui
+  sur-alloue des buffers proportionnels a la taille des messages (carte,
+  costmaps) et au nombre de participants DDS decouverts. Corrige en imposant
+  `rmw_cyclonedds_cpp` (voir section "Prerequis" plus haut). Si l'OOM revient
+  malgre `scripts/setup_env.sh` : verifier qu'il est bien source *avant* le
+  `ros2 launch` (dans le meme shell), et que `CYCLONEDDS_URI` pointe vers un
+  fichier existant (`echo $CYCLONEDDS_URI`).
 
 **Pas encore verifie, valeurs par defaut a mesurer sur le robot reel :**
 - `robot_radius` (0.45 dans `nav2_params_b2.yaml`) : a mesurer pattes
