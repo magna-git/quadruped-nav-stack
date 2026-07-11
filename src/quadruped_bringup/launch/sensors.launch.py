@@ -19,12 +19,15 @@ def launch_setup(context, *args, **kwargs):
     robot = LaunchConfiguration('robot').perform(context)
     profile_path, params = _load_profile(robot)
 
-    # 1. TF statique base -> lidar. Offset physique reel non calibre (TODO,
-    # voir TESTS_DEMAIN.md) : identite pour l'instant.
+   # 1. TF statique base -> lidar. Offset provisoire repris de l'URDF officiel
+    # Unitree (b2_description/xacro/robot.xacro, joint lidar_joint, trunk -> lidar_link) :
+    # xyz="0.34218 0 0.17851", rpy="0 0 0". NON calibre sur notre rslidar (LiDAR
+    # tiers, position physique possiblement differente) - a verifier en RViz avant
+    # de faire confiance a cette valeur pour du SLAM/nav reel. Voir TESTS_DEMAIN.md.
     static_tf = Node(
         package='tf2_ros',
         executable='static_transform_publisher',
-        arguments=['0', '0', '0', '0', '0', '0', params['base_frame'], params['target_frame']],
+        arguments=['0.34218', '0', '0.17851', '0', '0', '0', params['base_frame'], params['target_frame']],
         name='static_tf_lidar'
     )
 
