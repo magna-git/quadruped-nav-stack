@@ -72,6 +72,23 @@ colcon build --symlink-install
 source install/setup.bash
 ```
 
+## Quel launch lancer ?
+
+**Une carte existe deja pour ce robot/cet environnement ?** Verifie
+`src/quadruped_bringup/maps/*.yaml` (ou `share/quadruped_bringup/maps/` dans
+`install/` si deja buildee) : s'il y a un fichier recent, saute directement a
+"Navigation" ci-dessous — `navigation.launch.py` charge tout seul la carte la
+plus recente, pas besoin de refaire un mapping.
+
+**Pas de carte (nouveau robot, nouvel espace)** : fais d'abord "Mapping" pour
+en creer une, *puis* "Navigation".
+
+| Tu veux... | Lance... | Inclut |
+|---|---|---|
+| Cartographier un nouvel espace / carte absente ou perimee | `mapping.launch.py` | perception + actuation + slam_toolbox |
+| Naviguer avec une carte deja sauvegardee | `navigation.launch.py` | perception + actuation + AMCL + DWB + waypoints |
+| Juste piloter a la manette/teleop, sans SLAM ni nav | `actuation.launch.py` + `teleop.py` | uniquement le pont `/cmd_vel` -> SDK |
+
 ## Mapping
 
 ```
