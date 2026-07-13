@@ -146,6 +146,30 @@ deploiement).
 - `profiles/b2.yaml` n'etait charge par aucun noeud (verifie par grep) :
   simple doc, jamais lu -> corrige, c'est maintenant un vrai fichier de
   parametres ROS2 (`/**: ros__parameters:`) charge au lancement.
+- **`pointcloud_to_laserscan` ne publiait jamais sur `/scan`** (2026-07-13) :
+  bug de deserialisation des `PointField[]` dans le build custom
+  `rmw_cyclonedds_cpp` (`~/slam_config/cyclonedds_go2_B2_ws`, pas versionne) ->
+  aucune TF dynamique publiee (couplage avec `scan_cb()` dans `odom_to_tf.py`),
+  navigation bloquee silencieusement, sans erreur cote nav2/amcl. Contourne
+  dans `sensors.launch.py` : ce node force le paquet standard apt
+  (`ros-humble-rmw-cyclonedds-cpp`) via `additional_env`, en retirant
+  `cyclonedds_go2_B2_ws` de son `LD_LIBRARY_PATH`/`AMENT_PREFIX_PATH` ; le
+  reste du stack garde le build custom. A surveiller sur tout nouveau robot
+  qui reutiliserait ce meme build custom cyclonedds. Detail complet :
+  `TESTS_DEMAIN.md` section 6-7.
+- **`robot_adapter` plante au demarrage avec `RMW_IMPLEMENTATION=rmw_cyclonedds_cpp`**
+  (2026-07-13) : le SDK Unitree (`ChannelFactory::Instance()->Init()`) cree son
+  propre domain participant CycloneDDS explicite, qui entre en conflit avec
+  celui cree implicitement par `rclcpp::init()` sur le meme domaine (0) dans le
+  meme processus (`PreconditionNotMetError - Failed to create domain
+  explicitly`). Invisible tant qu'on lance `robot_adapter` a la main sans
+  exporter `RMW_IMPLEMENTATION` (fastrtps par defaut -> pas de conflit).
+  Contourne dans `actuation.launch.py` : ce node force
+  `RMW_IMPLEMENTATION=rmw_fastrtps_cpp` via `additional_env` (les topics
+  simples comme `/cmd_vel` restent interoperables entre RMW differents, teste
+  et confirme). A surveiller sur tout node qui melange rclcpp et un SDK bas
+  niveau utilisant directement CycloneDDS. Detail complet : `TESTS_DEMAIN.md`
+  section 7.
 - **OOM au lancement de `navigation.launch.py`** (2026-07-10) : tous les
   noeuds nav2 tues d'un coup par le kernel (`Out of memory: Killed process
   ...`, exit code -9 simultane sur amcl/controller_server/planner_server/
@@ -167,5 +191,14 @@ deploiement).
 - Limites de vitesse DWB (`max_vel_x/y/theta`, `acc_lim_*` dans
   `nav2_params_b2.yaml`) : valeurs de depart raisonnables, pas confrontees au
   comportement reel du B2-W.
+- **Couverture de la carte vs `robot_radius`/`inflation_radius`** : sur un
+  mapping trop court/etroit (ex. `b2_map_2026-07-10`, ~84% de la carte encore
+  "unknown"), le planificateur global peut echouer a trouver un chemin meme
+  vers un but en zone nominalement libre, simplement parce que
+  `robot_radius` (0.45) + `inflation_radius` (0.55) ne laissent plus de
+  corridor navigable dans une zone aussi peu explorée. Sur un nouveau robot :
+  faire un mapping large/complet avant de tester la navigation, sinon
+  reduire temporairement ces deux valeurs pour diagnostiquer. Detail :
+  `TESTS_DEMAIN.md` section 7.
 
 Voir `TESTS_DEMAIN.md` pour le plan de test qui doit lever ces inconnues.
