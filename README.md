@@ -1,10 +1,10 @@
 # quadruped-nav-stack
 
-Stack de navigation ROS 2 (Jazzy) pensé pour etre **reutilisable sur plusieurs
+Stack de navigation ROS 2 (humble) pensé pour etre **reutilisable sur plusieurs
 robots**, pas seulement le B2-W. L'objectif n'est pas "un stack pour le B2",
 mais un socle generique (perception, SLAM, localisation, evitement
 d'obstacles, waypoints) qu'on porte d'un robot a l'autre en ne changeant que
-la couche specifique au materiel — aujourd'hui le B2-W d'Unitree, demain par
+la couche specifique au materiel  aujourd'hui le B2-W d'Unitree, demain par
 exemple la D1 max d'AgiBot.
 
 ## Principe : ce qui est generique vs ce qui est specifique au robot
