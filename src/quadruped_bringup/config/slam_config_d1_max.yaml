@@ -1,0 +1,33 @@
+# SLAM Toolbox config — AgiBot D1 Max
+# Frames alignes avec profiles/d1_max.yaml (a creer)
+# LiDAR : 2 unites 96 canaux (avant + arriere), 360x90deg, 120m
+# Middleware : Zenoh (rmw_zenoh_cpp), ROS_DOMAIN_ID=24
+slam_toolbox:
+  ros__parameters:
+    use_sim_time: false
+
+    # Frames — doivent etre identiques a d1_max.yaml ET nav2_params_d1_max.yaml
+    # A confirmer via : ros2 topic echo /tf_static --once | grep frame
+    odom_frame: odom
+    map_frame: map
+    base_frame: base_link       # a confirmer sur D1 Max physique
+    scan_topic: /scan_synced    # apres conversion rslidar_points -> laserscan
+
+    # Carte
+    resolution: 0.05
+    map_update_interval: 2.0
+
+    # TF
+    transform_timeout: 2.5
+    tf_buffer_duration: 30.0
+
+    # Seuils de mouvement — meme fix que B2-W et D1 Ultra
+    minimum_travel_distance: 0.02
+    minimum_travel_heading: 0.02
+
+    mode: mapping
+
+    debug_logging: false
+    throttle_scans: 1
+    transform_publish_period: 0.02
+    map_start_at_dock: false
