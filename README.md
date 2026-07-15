@@ -50,7 +50,7 @@ profiles/                  (n'existe plus a la racine, deplace dans quadruped_br
 avant de builder/lancer quoi que ce soit :
 
 ```
-source scripts/setup_env.sh
+source scripts/env/setup_robot_internal.sh
 ```
 
 Ce script bascule le RMW de Fast-DDS (defaut ROS2) vers CycloneDDS. Raison :
@@ -62,7 +62,7 @@ d'un coup en quelques secondes (voir section "Erreurs deja rencontrees").
 
 Toutes les machines qui doivent se decouvrir (meme `ROS_DOMAIN_ID`, ex:
 robot + PC RViz) doivent utiliser le meme RMW et la meme interface reseau.
-`scripts/cyclonedds.xml` cible `eth0` par defaut : ajuster si l'interface
+`scripts/dds/cyclonedds_robot_internal.xml` cible `eth0` par defaut : ajuster si l'interface
 differe (`ip -o link show` pour lister les interfaces disponibles).
 
 ## Build
@@ -167,7 +167,11 @@ deploiement).
   bug de deserialisation des `PointField[]` dans le build custom
   `rmw_cyclonedds_cpp` (`~/slam_config/cyclonedds_go2_B2_ws`, pas versionne) ->
   aucune TF dynamique publiee (couplage avec `scan_cb()` dans `odom_to_tf.py`),
-  navigation bloquee silencieusement, sans erreur cote nav2/amcl. Contourne
+  navigation bloquee silencieusement, sans
+
+
+
+ erreur cote nav2/amcl. Contourne
   dans `sensors.launch.py` : ce node force le paquet standard apt
   (`ros-humble-rmw-cyclonedds-cpp`) via `additional_env`, en retirant
   `cyclonedds_go2_B2_ws` de son `LD_LIBRARY_PATH`/`AMENT_PREFIX_PATH` ; le
@@ -196,7 +200,7 @@ deploiement).
   sur-alloue des buffers proportionnels a la taille des messages (carte,
   costmaps) et au nombre de participants DDS decouverts. Corrige en imposant
   `rmw_cyclonedds_cpp` (voir section "Prerequis" plus haut). Si l'OOM revient
-  malgre `scripts/setup_env.sh` : verifier qu'il est bien source *avant* le
+  malgre `scripts/env/setup_robot_internal.sh` : verifier qu'il est bien source *avant* le
   `ros2 launch` (dans le meme shell), et que `CYCLONEDDS_URI` pointe vers un
   fichier existant (`echo $CYCLONEDDS_URI`).
 

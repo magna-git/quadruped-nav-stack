@@ -11,4 +11,4 @@
 # decouvrent.
 
 export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
-export CYCLONEDDS_URI="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/cyclonedds.xml"
+export CYCLONEDDS_URI="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/dds/cyclonedds_robot_internal.xml"
