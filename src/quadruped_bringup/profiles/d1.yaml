@@ -1,0 +1,38 @@
+# Profil robot AgiBot D1 (Ultra / Edu / Max)
+# SSH WiFi    : ssh firefly@192.168.234.1   (password: firefly)  — D1 Ultra/Edu
+# SSH Ethernet: ssh firefly@192.168.168.168 (password: firefly)  — D1 Ultra/Edu
+# SSH Orin NX : ssh jszr@192.168.168.100   (password: 1)        — D1 Max
+# SDK Ultra   : UDP port 43988
+# SDK Max     : TCP 192.168.234.1:8081
+# Middleware  : Zenoh (D1 Max) / standard (D1 Ultra)
+#
+# Seule difference entre modeles :
+#   D1 Ultra : lidar_topic: /laser_scan      (inactif, pas de LiDAR physique)
+#   D1 Max   : lidar_topic: /rslidar_points_head  (LiDAR avant 96 canaux)
+/**:
+  ros__parameters:
+    # Frames — confirmes sur D1 Ultra physique
+    base_frame: base_link
+    odom_frame: odom
+    map_frame: map
+
+    # Odom — confirme : nav_msgs/msg/Odometry @ 50Hz
+    odom_topic: /odom/current_pose
+    scan_topic: /scan
+    scan_synced_topic: /scan_synced
+
+    # LiDAR — changer selon le modele
+    target_frame: lidar
+    min_height: -0.3
+    max_height: 0.5
+    use_inf: true
+    lidar_topic: /rslidar_points_head  # D1 Max — mettre /laser_scan pour D1 Ultra
+
+    # Actuation — confirme : geometry_msgs/msg/Twist
+    cmd_vel_topic: /cmd_vel
+    network_interface: eth0
+
+    # Vitesses — securite interieur
+    max_vx: 0.5
+    max_vy: 1.0
+    max_vyaw: 2.0
