@@ -2,6 +2,7 @@ import glob
 import os
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction
+from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
@@ -20,6 +21,7 @@ def _latest_map(maps_dir: str) -> str:
 
 def launch_setup(context, *args, **kwargs):
     robot = LaunchConfiguration('robot').perform(context)
+    use_rviz = LaunchConfiguration('use_rviz')
     bringup_share = get_package_share_directory('quadruped_bringup')
     nav2_share = get_package_share_directory('quadruped_nav2')
 
@@ -58,6 +60,7 @@ def launch_setup(context, *args, **kwargs):
             'robot': robot,
             'map': map_yaml_file,
             'params_file': params_file,
+            'use_rviz': 'false',
         }.items(),
     )
 
@@ -114,6 +117,13 @@ def launch_setup(context, *args, **kwargs):
         name='lifecycle_manager_navigation',
         parameters=[params_file],
     )
+    rviz = Node(
+        package='rviz2',
+        executable='rviz2',
+        name='rviz2_navigation',
+        arguments=['-d', LaunchConfiguration('rviz_config')],
+        condition=IfCondition(use_rviz),
+    )
 
     return [
         sensors,
@@ -126,6 +136,7 @@ def launch_setup(context, *args, **kwargs):
         waypoint_follower,
         velocity_smoother,
         lifecycle_manager_navigation,
+        rviz,
     ]
 
 
@@ -140,5 +151,10 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'params_file', default_value='',
             description='Fichier nav2 a utiliser ; vide = config/nav2_params_<robot>.yaml'),
+        DeclareLaunchArgument('use_rviz', default_value='false'),
+        DeclareLaunchArgument(
+            'rviz_config',
+            default_value='/home/unitree/unified_nav_ws/rviz/navigation.rviz',
+        ),
         OpaqueFunction(function=launch_setup),
     ])

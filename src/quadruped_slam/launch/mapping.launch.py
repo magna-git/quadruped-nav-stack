@@ -63,7 +63,7 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument('robot', default_value='b2'),
         DeclareLaunchArgument('use_sim_time', default_value='false'),
-        DeclareLaunchArgument('use_rviz', default_value='true'),
+        DeclareLaunchArgument('use_rviz', default_value='false'),
         DeclareLaunchArgument('start_actuation', default_value='true'),
         DeclareLaunchArgument('slam_params_file', default_value=''),
         DeclareLaunchArgument(
