@@ -11,12 +11,8 @@ amcl:
     odom_frame_id: "odom"
     global_frame_id: "map"
     scan_topic: /scan_synced
-    set_initial_pose: true
-    initial_pose:
-      x: 0.0
-      y: 0.0
-      z: 0.0
-      yaw: 0.0
+    tf_broadcast: true
+    set_initial_pose: false
     alpha1: 0.2
     alpha2: 0.2
     alpha3: 0.2
@@ -25,13 +21,17 @@ amcl:
     max_particles: 2000
     min_particles: 500
     laser_max_range: 20.0
-    laser_min_range: 0.5
-    # Alignes sur le fix slam_toolbox (commit "Fix B2-W SLAM..."): avec des seuils
-    # a 0.2 (20cm/~11 deg) le filtre ne se recalait qu'apres un tres gros
-    # deplacement, ce qui empechait la carte/localisation de suivre le robot.
+    laser_min_range: 0.25
     update_min_a: 0.02
     update_min_d: 0.02
-    robot_model_type: "nav2_amcl::OmniMotionModel"  # B2-W = holonome (vx, vy, vyaw)
+    robot_model_type: "nav2_amcl::OmniMotionModel"
+    transform_tolerance: 2.5
+    resample_interval: 1
+    recovery_alpha_fast: 0.0
+    recovery_alpha_slow: 0.0
+    initial_cov_xx: 0.25
+    initial_cov_yy: 0.25
+    initial_cov_aa: 0.2
 
 map_server:
   ros__parameters:
@@ -57,8 +57,8 @@ controller_server:
     controller_plugins: ["FollowPath"]
     progress_checker:
       plugin: "nav2_controller::SimpleProgressChecker"
-      required_movement_radius: 0.5
-      movement_time_allowance: 10.0
+      required_movement_radius: 0.2
+      movement_time_allowance: 15.0
     general_goal_checker:
       plugin: "nav2_controller::SimpleGoalChecker"
       xy_goal_tolerance: 0.15
@@ -68,7 +68,7 @@ controller_server:
     # au lieu d'echantillonner des trajectoires discretes comme DWB.
     FollowPath:
       plugin: "nav2_graceful_controller::GracefulController"
-      transform_tolerance: 0.2
+      transform_tolerance: 0.5
       motion_target_dist: 0.6
       initial_rotation: true
       initial_rotation_tolerance: 0.75
@@ -76,8 +76,8 @@ controller_server:
       rotation_scaling_factor: 0.5
       allow_backward: false
       v_linear_min: 0.05
-      v_linear_max: 0.5
-      v_angular_max: 0.8
+      v_linear_max: 0.35
+      v_angular_max: 0.6
       k_phi: 3.0
       k_delta: 2.0
       beta: 0.4
@@ -94,12 +94,12 @@ local_costmap:
       publish_frequency: 2.0
       global_frame: odom
       robot_base_frame: robot_center
+      transform_tolerance: 0.5
       rolling_window: true
-      width: 4
-      height: 4
+      width: 5.0
+      height: 5.0
       resolution: 0.05
-      # TODO : mesurer le vrai rayon d'encombrement du B2-W (pattes ecartees).
-      robot_radius: 0.45
+      footprint: "[[0.42, 0.24], [0.42, -0.24], [-0.42, -0.24], [-0.42, 0.24]]"
       plugins: ["voxel_layer", "inflation_layer"]
       voxel_layer:
         plugin: "nav2_costmap_2d::VoxelLayer"
@@ -124,7 +124,7 @@ local_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 3.0
-        inflation_radius: 0.55
+        inflation_radius: 0.60
 
 # Costmap globale : construite une fois sur la carte statique (map_server),
 # sert au planificateur global pour le chemin complet.
@@ -136,7 +136,8 @@ global_costmap:
       publish_frequency: 1.0
       global_frame: map
       robot_base_frame: robot_center
-      robot_radius: 0.45
+      transform_tolerance: 0.5
+      footprint: "[[0.42, 0.24], [0.42, -0.24], [-0.42, -0.24], [-0.42, 0.24]]"
       resolution: 0.05
       track_unknown_space: true
       plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
@@ -168,8 +169,8 @@ planner_server:
     planner_plugins: ["GridBased"]
     GridBased:
       plugin: "nav2_navfn_planner/NavfnPlanner"
-      tolerance: 0.5
-      use_astar: false
+      tolerance: 0.25
+      use_astar: true
       allow_unknown: true
 
 behavior_server:
@@ -189,7 +190,7 @@ behavior_server:
       plugin: "nav2_behaviors/Wait"
     global_frame: odom
     robot_base_frame: robot_center
-    transform_tolerance: 0.2
+    transform_tolerance: 0.5
     simulate_ahead_time: 2.0
     max_rotational_vel: 0.8
     min_rotational_vel: 0.2
@@ -200,7 +201,7 @@ bt_navigator:
     use_sim_time: false
     global_frame: map
     robot_base_frame: robot_center
-    transform_tolerance: 0.2
+    transform_tolerance: 0.5
     # Un parametre declare (meme "") ecrase le defaut interne de bt_navigator
     # -> "Empty Tree" a chaque goal. Chemin explicite vers les arbres nav2 standard.
     default_nav_to_pose_bt_xml: "/opt/ros/humble/share/nav2_bt_navigator/behavior_trees/navigate_to_pose_w_replanning_and_recovery.xml"
@@ -225,10 +226,10 @@ velocity_smoother:
     smoothing_frequency: 20.0
     scale_velocities: false
     feedback: "OPEN_LOOP"
-    max_velocity: [0.5, 0.3, 0.8]
+    max_velocity: [0.35, 0.2, 0.6]
     min_velocity: [-0.2, -0.3, -0.8]
-    max_accel: [1.0, 1.0, 2.0]
-    max_decel: [-1.0, -1.0, -2.0]
+    max_accel: [0.6, 0.6, 1.2]
+    max_decel: [-0.6, -0.6, -1.2]
     odom_topic: "/dog_odom"
     odom_duration: 0.1
 

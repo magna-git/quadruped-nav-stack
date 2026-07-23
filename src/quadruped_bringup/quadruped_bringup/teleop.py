@@ -108,7 +108,7 @@ def parse_args():
 def read_char(timeout: float = 0.1):
     ready, _, _ = select.select([sys.stdin], [], [], timeout)
     if ready:
-      return sys.stdin.read(1)
+        return sys.stdin.read(1)
     return None
 
 

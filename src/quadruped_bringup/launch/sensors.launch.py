@@ -36,16 +36,23 @@ def launch_setup(context, *args, **kwargs):
     robot = LaunchConfiguration('robot').perform(context)
     profile_path, params = _load_profile(robot)
 
-   # 1. TF statique base -> lidar. Offset provisoire repris de l'URDF officiel
-    # Unitree (b2_description/xacro/robot.xacro, joint lidar_joint, trunk -> lidar_link) :
-    # xyz="0.34218 0 0.17851", rpy="0 0 0". NON calibre sur notre rslidar (LiDAR
-    # tiers, position physique possiblement differente) - a verifier en RViz avant
-    # de faire confiance a cette valeur pour du SLAM/nav reel. Voir TESTS_DEMAIN.md.
+    lidar_xyz = [str(value) for value in params['lidar_tf_xyz']]
+    lidar_rpy = [str(value) for value in params['lidar_tf_rpy']]
+    imu_xyz = [str(value) for value in params['imu_tf_xyz']]
+    imu_rpy = [str(value) for value in params['imu_tf_rpy']]
+
+    # 1. TF statiques du robot : LiDAR et IMU vers la base.
     static_tf = Node(
         package='tf2_ros',
         executable='static_transform_publisher',
-        arguments=['0.34218', '0', '0.17851', '0', '0', '0', params['base_frame'], params['target_frame']],
+        arguments=lidar_xyz + lidar_rpy + [params['base_frame'], params['target_frame']],
         name='static_tf_lidar'
+    )
+    static_tf_imu = Node(
+        package='tf2_ros',
+        executable='static_transform_publisher',
+        arguments=imu_xyz + imu_rpy + [params['base_frame'], params['imu_frame']],
+        name='static_tf_imu'
     )
 
     # 2. odom_to_tf + re-stamp du scan (topics pilotes par le profil robot)
@@ -66,7 +73,7 @@ def launch_setup(context, *args, **kwargs):
         additional_env=_standard_rmw_env(),
     )
 
-    return [static_tf, odom_to_tf, pc_to_scan]
+    return [static_tf, static_tf_imu, odom_to_tf, pc_to_scan]
 
 
 def generate_launch_description():

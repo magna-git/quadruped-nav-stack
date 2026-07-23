@@ -11,6 +11,7 @@ from sensor_msgs.msg import LaserScan
 from tf2_ros import TransformBroadcaster
 from geometry_msgs.msg import TransformStamped
 
+
 class OdomToTF(Node):
     def __init__(self):
         super().__init__('odom_to_tf')
@@ -81,6 +82,7 @@ class OdomToTF(Node):
         synced.header.frame_id = msg.header.frame_id or 'rslidar'
         self.pub_scan.publish(synced)
 
+
 def main():
     rclpy.init()
     node = OdomToTF()
@@ -95,6 +97,7 @@ def main():
         node.destroy_node()
         if rclpy.ok():
             rclpy.shutdown()
+
 
 if __name__ == '__main__':
     main()

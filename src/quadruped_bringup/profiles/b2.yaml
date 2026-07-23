@@ -17,6 +17,8 @@
     base_frame: robot_center
     odom_frame: odom
     map_frame: map
+    lidar_frame: rslidar
+    imu_frame: dog_imu_link
 
     # Perception : odom_to_tf
     odom_topic: /dog_odom
@@ -25,9 +27,24 @@
 
     # Perception : pointcloud_to_laserscan (noms de parametres imposes par le package)
     target_frame: rslidar
-    min_height: -0.3
-    max_height: 0.5
+    transform_tolerance: 0.2
+    min_height: -0.15
+    max_height: 0.35
+    angle_min: -3.14159
+    angle_max: 3.14159
+    angle_increment: 0.008726646
+    scan_time: 0.1
+    range_min: 0.25
+    range_max: 20.0
     use_inf: true
+    inf_epsilon: 1.0
+    queue_size: 20
+
+    # Extrinseques officielles B2-W
+    lidar_tf_xyz: [0.34218, 0.0, 0.17851]
+    lidar_tf_rpy: [0.0, 0.0, 0.0]
+    imu_tf_xyz: [0.0, -0.02341, 0.04927]
+    imu_tf_rpy: [0.0, 0.0, 0.0]
 
     # Perception : topic lidar a remapper sur cloud_in
     lidar_topic: /rslidar_points

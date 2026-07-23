@@ -1,6 +1,11 @@
 # quadruped-nav-stack
 
-Stack de navigation ROS 2 (humble) pensé pour etre **reutilisable sur plusieurs
+Stack stable ROS 2 Humble pour le B2-W basé sur :
+
+LiDAR 3D -> LaserScan 2D -> SLAM Toolbox -> carte 2D -> sauvegarde de carte ->
+AMCL -> Nav2 -> goals / waypoints -> `/cmd_vel` -> adaptateur Unitree.
+
+Le dépôt reste pensé pour etre **reutilisable sur plusieurs
 robots**, pas seulement le B2-W. L'objectif n'est pas "un stack pour le B2",
 mais un socle generique (perception, SLAM, localisation, evitement
 d'obstacles, waypoints) qu'on porte d'un robot a l'autre en ne changeant que
@@ -91,15 +96,20 @@ en creer une, *puis* "Navigation".
 
 ## Mapping
 
-```
-ros2 launch quadruped_bringup mapping.launch.py robot:=b2
+```bash
+cd /home/unitree/unified_nav_ws
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+source scripts/setup_env.sh
+ros2 launch quadruped_slam mapping.launch.py robot:=b2
 ```
 
-Lance perception + actuation (teleop possible pendant le mapping) +
-slam_toolbox. Sauver la carte une fois satisfaisante :
+Lance perception + TF + conversion scan + SLAM Toolbox. Sauver la carte une fois satisfaisante :
 
-```
-ros2 run nav2_map_server map_saver_cli -f src/quadruped_bringup/maps/<nom_carte>
+```bash
+ros2 run quadruped_slam scan_diagnostics
+ros2 run b2w_sensor_diagnostics tf_diagnostics
+./scripts/save_map.sh b2w_office
 ```
 
 `map_saver_cli` sauve directement le `.pgm`/`.yaml` en ecoutant le topic
@@ -112,9 +122,23 @@ Apres un nouveau `map_saver_cli` dans `src/quadruped_bringup/maps/`, refaire
 `colcon build --symlink-install` (rapide, package Python) pour que la nouvelle
 carte soit visible au prochain lancement de la navigation.
 
+## Localisation
+
+```bash
+ros2 launch quadruped_nav2 localization.launch.py \
+  robot:=b2 \
+  map:=/home/unitree/unified_nav_ws/maps/b2w_office.yaml
+```
+
+Dans RViz :
+
+1. cliquer sur `2D Pose Estimate`
+2. indiquer la position et l'orientation initiales
+3. verifier que le scan correspond aux murs de la carte
+
 ## Navigation (localisation + evitement d'obstacles + waypoints)
 
-```
+```bash
 ros2 launch quadruped_nav2 navigation.launch.py robot:=b2
 ```
 
@@ -127,6 +151,19 @@ explicitement pour forcer une carte precise.
 - **Waypoints** : dans RViz, plugin *Nav2 Waypoint/Goal*, poser plusieurs points puis
   lancer la mission. Alternative scriptee possible via `nav2_simple_commander`
   (`follow_waypoints`) si besoin d'automatiser une tournee.
+
+Avant tout mouvement reel :
+
+1. verifier `/cmd_vel`
+2. verifier la TF
+3. verifier que le scan est correctement aligne
+4. envoyer un petit goal uniquement dans une zone degagee
+
+## Validation hors mouvement
+
+```bash
+./scripts/validate_main_stack.sh
+```
 
 ## Porter le stack sur un nouveau robot (ex: AgiBot D1max)
 

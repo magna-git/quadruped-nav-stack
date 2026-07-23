@@ -50,26 +50,15 @@ def launch_setup(context, *args, **kwargs):
         launch_arguments={'robot': robot}.items(),
     )
 
-    # -- Groupe localisation --
-    map_server = Node(
-        package='nav2_map_server',
-        executable='map_server',
-        name='map_server',
-        parameters=[params_file, {'yaml_filename': map_yaml_file}],
-    )
-
-    amcl = Node(
-        package='nav2_amcl',
-        executable='amcl',
-        name='amcl',
-        parameters=[params_file],
-    )
-
-    lifecycle_manager_localization = Node(
-        package='nav2_lifecycle_manager',
-        executable='lifecycle_manager',
-        name='lifecycle_manager_localization',
-        parameters=[params_file],
+    localization = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(nav2_share, 'launch', 'localization.launch.py')
+        ),
+        launch_arguments={
+            'robot': robot,
+            'map': map_yaml_file,
+            'params_file': params_file,
+        }.items(),
     )
 
     # -- Groupe navigation (planif globale, evitement d'obstacles, waypoints) --
@@ -129,9 +118,7 @@ def launch_setup(context, *args, **kwargs):
     return [
         sensors,
         actuation,
-        map_server,
-        amcl,
-        lifecycle_manager_localization,
+        localization,
         controller_server,
         planner_server,
         behavior_server,
