@@ -49,6 +49,16 @@ dépendances déclarées par les packages :
 rosdep install --from-paths src --ignore-src -r -y
 ```
 
+Le SDK Unitree 2 doit être installé séparément. Indiquer son emplacement avant
+la compilation (le chemin par défaut est `$HOME/unitree_sdk2`) :
+
+```bash
+export UNITREE_SDK_DIR=$HOME/unitree_sdk2
+```
+
+Il est aussi possible de le fournir directement à CMake avec
+`--cmake-args -DUNITREE_SDK_DIR=/path/to/unitree_sdk2` lors du build `colcon`.
+
 Les principales dépendances système sont aussi récapitulées dans
 `requirements.txt`.
 
